@@ -12,9 +12,9 @@ namespace Service
         private readonly IOrderRepository _orderRepository;
         private readonly IMapper _mapper;
         private readonly IProductService _productService;
-        private readonly ILogger _logger;
+        private readonly ILogger<OrderService> _logger;
 
-        public OrderService(IOrderRepository orderRepository, IMapper mapper, IProductService productService, ILogger logger)
+        public OrderService(IOrderRepository orderRepository, IMapper mapper, IProductService productService, ILogger<OrderService> logger)
         {
             _orderRepository = orderRepository;
             _mapper = mapper;

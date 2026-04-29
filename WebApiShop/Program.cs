@@ -62,6 +62,8 @@ app.UseHttpsRedirection();
 
 //app.UseErrorHandling();
 
+app.UseRateLimiting(limit: 100, windowSeconds: 60);
+
 app.UseRating();
 
 app.UseStaticFiles();
