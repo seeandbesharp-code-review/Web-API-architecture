@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NLog.Web;
 using Repositories;
 using Service;
+using StackExchange.Redis;
 using WebApiShop.Controllers;
 using WebApiShop.MiddleWare;
 
@@ -11,6 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 //builder.Host.UseNLog();
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(
+    ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis")!));
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
