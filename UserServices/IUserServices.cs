@@ -4,8 +4,8 @@ namespace Service
 {
     public interface IUserServices
     {
-        Task<UserDTO> AddUser(PostUserDTO user);
-        Task<UserDTO> FindUser(LoginUser user);
+        Task<AuthResponseDTO?> AddUser(PostUserDTO user);
+        Task<AuthResponseDTO?> FindUser(LoginUser user);
         Task<UserDTO> GetById(int id);
         Task<bool> UpdateUser(PostUserDTO user);
     }

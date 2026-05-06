@@ -1,4 +1,5 @@
 ﻿using Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Service;
 using DTO_s;
@@ -10,18 +11,17 @@ namespace WebApiShop.Controllers
     public class UsersController : ControllerBase
     {
         private readonly IUserServices _userServices;
-        private readonly IPasswordServices _passwordServices;
         private readonly ILogger<UsersController> _logger;
 
-        public UsersController(IUserServices userServices, IPasswordServices passwordServices, ILogger<UsersController> logger)
+        public UsersController(IUserServices userServices, ILogger<UsersController> logger)
         {
             _userServices = userServices;
-            _passwordServices = passwordServices;
             _logger = logger;
         }
 
         // GET api/<UsersController>/5
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<User>> GetById(int id)
         {
             UserDTO user = await _userServices.GetById(id);
@@ -32,27 +32,42 @@ namespace WebApiShop.Controllers
 
         // POST api/<UsersController>
         [HttpPost]
+        [AllowAnonymous]
         public async Task<ActionResult<UserDTO>> NewUser([FromBody] PostUserDTO user)
         {
-            Password password = _passwordServices.GetStrength(user.Password);
-            if (password.Strength < 2)
-                return BadRequest($"Password too weak (score: {password.Strength}/4). Minimum required: 2");
-            UserDTO userResult = await _userServices.AddUser(user);
-            return CreatedAtAction(nameof(GetById), new { id = userResult.Id }, userResult);
+            AuthResponseDTO? result = await _userServices.AddUser(user);
+            if (result == null)
+                return BadRequest("Password too weak. Minimum required strength: 2/4");
+            AppendJwtCookie(result.Token);
+            return CreatedAtAction(nameof(GetById), new { id = result.User.Id }, result.User);
         }
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<ActionResult<UserDTO>> Login([FromBody] LoginUser user)
         {
-            UserDTO userResult = await _userServices.FindUser(user);
-            if (userResult == null)
+            AuthResponseDTO? result = await _userServices.FindUser(user);
+            if (result == null)
                 return Unauthorized();
-            _logger.LogInformation($"Login attempted with Email {user.Email} and password {user.Password}");
-            return Ok(userResult);
+            _logger.LogInformation($"Login attempted with Email {user.Email}");
+            AppendJwtCookie(result.Token);
+            return Ok(result.User);
+        }
+
+        private void AppendJwtCookie(string token)
+        {
+            Response.Cookies.Append("jwt", token, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTimeOffset.UtcNow.AddHours(1)
+            });
         }
 
         // PUT api/<UsersController>/5
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<ActionResult> UpdateUser([FromBody]PostUserDTO user)
         {
             bool res = await _userServices.UpdateUser(user);

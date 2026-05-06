@@ -10,12 +10,14 @@ namespace Service
         private readonly IUserRepository _userRepositories;
         private readonly IPasswordServices _passwordServices;
         private readonly IMapper _mapper;
+        private readonly IJwtService _jwtService;
 
-        public UserServices(IUserRepository userRepositories, IMapper mapper, IPasswordServices passwordServices)
+        public UserServices(IUserRepository userRepositories, IMapper mapper, IPasswordServices passwordServices, IJwtService jwtService)
         {
             _userRepositories = userRepositories;
             _passwordServices = passwordServices;
             _mapper = mapper;
+            _jwtService = jwtService;
         }
 
         public async Task<UserDTO> GetById(int id)
@@ -25,7 +27,7 @@ namespace Service
             return userDTO;
         }
 
-        public async Task<UserDTO> AddUser(PostUserDTO user)
+        public async Task<AuthResponseDTO?> AddUser(PostUserDTO user)
         {
             if (_passwordServices.GetStrength(user.Password).Strength <= 2)
                 return null;
@@ -33,13 +35,18 @@ namespace Service
             userEntity.Password = user.Password;
             User result = await _userRepositories.AddUser(userEntity);
             UserDTO userDTO = _mapper.Map<User, UserDTO>(result);
-            return userDTO;
+            string token = _jwtService.GenerateToken(userDTO);
+            return new AuthResponseDTO(userDTO, token);
         }
-        public async Task<UserDTO> FindUser(LoginUser user)
+
+        public async Task<AuthResponseDTO?> FindUser(LoginUser user)
         {
-            User res = await _userRepositories.FindUser(user);
+            User? res = await _userRepositories.FindUser(user);
+            if (res == null)
+                return null;
             UserDTO userDTO = _mapper.Map<User, UserDTO>(res);
-            return userDTO;
+            string token = _jwtService.GenerateToken(userDTO);
+            return new AuthResponseDTO(userDTO, token);
         }
 
         public async Task<bool> UpdateUser(PostUserDTO user)

@@ -25,19 +25,26 @@ namespace Service
         {
             string key = $"product:{id}";
 
-            // Cache Hit
-            RedisValue cached = await _redisDb.StringGetAsync(key);
-            if (cached.HasValue)
+            try
             {
-                return JsonSerializer.Deserialize<ProductDTO>(cached!)!;
+                // Cache Hit
+                RedisValue cached = await _redisDb.StringGetAsync(key);
+                if (cached.HasValue)
+                {
+                    return JsonSerializer.Deserialize<ProductDTO>(cached!)!;
+                }
             }
+            catch (RedisException) { }
 
             // Cache Miss – fetch from DB
             Product p = await _productRepository.GetProductById(id);
             ProductDTO result = _mapper.Map<Product, ProductDTO>(p);
 
-            // Store in Redis with TTL
-            await _redisDb.StringSetAsync(key, JsonSerializer.Serialize(result), _ttl);
+            try
+            {
+                await _redisDb.StringSetAsync(key, JsonSerializer.Serialize(result), _ttl);
+            }
+            catch (RedisException) { }
 
             return result;
         }
@@ -50,12 +57,16 @@ namespace Service
             string categoriesKey = categories != null ? string.Join(",", categories) : "null";
             string key = $"products:{name}:{categoriesKey}:{minPrice}:{maxPrice}:{position}:{skip}:{orderBy}:{description}";
 
-            // Cache Hit
-            RedisValue cached = await _redisDb.StringGetAsync(key);
-            if (cached.HasValue)
+            try
             {
-                return JsonSerializer.Deserialize<PageResponse<ProductDTO>>(cached!)!;
+                // Cache Hit
+                RedisValue cached = await _redisDb.StringGetAsync(key);
+                if (cached.HasValue)
+                {
+                    return JsonSerializer.Deserialize<PageResponse<ProductDTO>>(cached!)!;
+                }
             }
+            catch (RedisException) { }
 
             // Cache Miss – fetch from DB
             List<Product> products;
@@ -67,8 +78,11 @@ namespace Service
             pageResponse.HasNextPage = (pageResponse.TotalItems / skip) > (pageResponse.CurrentPage - 1);
             pageResponse.PageSize = (int)skip;
 
-            // Store in Redis with TTL
-            await _redisDb.StringSetAsync(key, JsonSerializer.Serialize(pageResponse), _ttl);
+            try
+            {
+                await _redisDb.StringSetAsync(key, JsonSerializer.Serialize(pageResponse), _ttl);
+            }
+            catch (RedisException) { }
 
             return pageResponse;
         }
