@@ -32,7 +32,7 @@ namespace Service
             if (_passwordServices.GetStrength(user.Password).Strength <= 2)
                 return null;
             User userEntity = _mapper.Map<PostUserDTO, User>(user);
-            userEntity.Password = user.Password;
+            userEntity.Password = _passwordServices.HashPassword(user.Password);
             User result = await _userRepositories.AddUser(userEntity);
             UserDTO userDTO = _mapper.Map<User, UserDTO>(result);
             string token = _jwtService.GenerateToken(userDTO);
@@ -41,8 +41,8 @@ namespace Service
 
         public async Task<AuthResponseDTO?> FindUser(LoginUser user)
         {
-            User? res = await _userRepositories.FindUser(user);
-            if (res == null)
+            User? res = await _userRepositories.FindUser(user.Email);
+            if (res == null || !_passwordServices.VerifyPassword(user.Password, res.Password))
                 return null;
             UserDTO userDTO = _mapper.Map<User, UserDTO>(res);
             string token = _jwtService.GenerateToken(userDTO);
@@ -56,7 +56,7 @@ namespace Service
                 return false;
             User userToUpdate = _mapper.Map<PostUserDTO, User>(user);
             userToUpdate.Id = user.Id;
-            userToUpdate.Password = user.Password;
+            userToUpdate.Password = _passwordServices.HashPassword(user.Password);
             await _userRepositories.UpdateUser(userToUpdate);
             return true;
         }

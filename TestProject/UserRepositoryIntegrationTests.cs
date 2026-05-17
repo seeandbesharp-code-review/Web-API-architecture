@@ -82,35 +82,30 @@ namespace Repositories.Tests
 
         // Test for FindUser method (successful login)
         [Fact]
-        public async Task FindUser_ShouldReturnUser_WhenCredentialsMatch()
+        public async Task FindUser_ShouldReturnUser_WhenEmailMatches()
         {
             // Arrange
-            var user = new User { Email = "user1@test.com", Password = "password1" };
+            var user = new User { Email = "user1@test.com", Password = "hashedpassword" };
             await _repository.AddUser(user); // Add user to DB
 
-            var loginUser = new LoginUser { Email = "user1@test.com", Password = "password1" };
-
             // Act
-            var result = await _repository.FindUser(loginUser);
+            var result = await _repository.FindUser("user1@test.com");
 
             // Assert
             Assert.NotNull(result);
             Assert.Equal("user1@test.com", result.Email);
-            Assert.Equal("password1", result.Password);
         }
 
         // Test for FindUser method (unsuccessful login)
         [Fact]
-        public async Task FindUser_ShouldReturnNull_WhenCredentialsDoNotMatch()
+        public async Task FindUser_ShouldReturnNull_WhenEmailDoesNotExist()
         {
             // Arrange
-            var user = new User { Email = "user1@test.com", Password = "password1" };
+            var user = new User { Email = "user1@test.com", Password = "hashedpassword" };
             await _repository.AddUser(user); // Add user to DB
 
-            var loginUser = new LoginUser { Email = "user1@test.com", Password = "wrongpassword" };
-
             // Act
-            var result = await _repository.FindUser(loginUser);
+            var result = await _repository.FindUser("unknown@test.com");
 
             // Assert
             Assert.Null(result);

@@ -1,7 +1,5 @@
-﻿using DTO_s;
-using Entities;
+﻿using Entities;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
 using System.Text.Json;
 
 namespace Repositories
@@ -28,10 +26,10 @@ namespace Repositories
             return user;
         }
 
-        public async Task<User?> FindUser(LoginUser user)
+        public async Task<User?> FindUser(string email)
         {
             return await _dbContext.Users.FirstOrDefaultAsync(
-                x => x.Email == user.Email && x.Password == user.Password
+                x => x.Email == email
              );
         }
 
