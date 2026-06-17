@@ -23,8 +23,10 @@ namespace WebApiShop.MiddleWare
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
                 httpContext.Response.StatusCode = 500;
-                _logger.LogError(ex + " call stack: " + ex.StackTrace);
+                httpContext.Response.ContentType = "application/json";
+                await httpContext.Response.WriteAsync("{\"error\":\"An unexpected error occurred.\"}");
             }
         }
     }

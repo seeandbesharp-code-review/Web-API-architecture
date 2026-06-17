@@ -126,7 +126,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 
-//app.UseErrorHandling();
+app.UseErrorHandling();
 
 app.UseRateLimiting(limit: 100, windowSeconds: 60);
 
