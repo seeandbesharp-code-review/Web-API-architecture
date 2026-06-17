@@ -45,6 +45,8 @@ builder.Services.AddScoped<IRatingService, RatingService>();
 
 builder.Services.AddScoped<IRatingRepository, RatingRepository>();
 
+builder.Services.AddSingleton<IKafkaProducerService, KafkaProducerService>();
+
 builder.Services.AddDbContext<ShopContext>(option => option.UseSqlServer(builder.Configuration.GetConnectionString("Home")));
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());

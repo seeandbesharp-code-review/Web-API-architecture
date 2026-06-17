@@ -12,13 +12,20 @@ namespace Service
         private readonly IOrderRepository _orderRepository;
         private readonly IMapper _mapper;
         private readonly IProductService _productService;
+        private readonly IKafkaProducerService _kafkaProducerService;
         private readonly ILogger<OrderService> _logger;
 
-        public OrderService(IOrderRepository orderRepository, IMapper mapper, IProductService productService, ILogger<OrderService> logger)
+        public OrderService(
+            IOrderRepository orderRepository,
+            IMapper mapper,
+            IProductService productService,
+            IKafkaProducerService kafkaProducerService,
+            ILogger<OrderService> logger)
         {
             _orderRepository = orderRepository;
             _mapper = mapper;
             _productService = productService;
+            _kafkaProducerService = kafkaProducerService;
             _logger = logger;
         }
 
@@ -38,9 +45,30 @@ namespace Service
                 ord.OrderSum = checkedSum;
                 _logger.LogInformation($"Order number {order.OrderId} with incorrect sum, the order sum is {checkedSum}");
             }
+
             Order res = await _orderRepository.AddOrder(ord);
-                OrderDTO orderDTO = _mapper.Map<Order, OrderDTO>(res);
-                return orderDTO;
+
+            TransactionMessage transactionMessage = new(
+                TransactionId: Guid.NewGuid().ToString("N"),
+                UserId: res.UserId,
+                OrderId: res.OrderId,
+                Amount: res.OrderSum ?? 0,
+                Currency: "ILS",
+                Status: "Created",
+                CreatedAtUtc: DateTime.UtcNow);
+
+            try
+            {
+                await _kafkaProducerService.SendTransactionAsync(transactionMessage);
+                _logger.LogInformation("Published order transaction event for order {OrderId}", res.OrderId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to publish order transaction event for order {OrderId}", res.OrderId);
+            }
+
+            OrderDTO orderDTO = _mapper.Map<Order, OrderDTO>(res);
+            return orderDTO;
         }
 
         private async Task<int> checkOrderSum(ICollection<OrderItem> orderItems)
